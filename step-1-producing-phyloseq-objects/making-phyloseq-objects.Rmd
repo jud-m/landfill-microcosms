@@ -9,7 +9,7 @@ output:
 
 Inputs: fastq files, merged or paired or unpaired forward and reverse. This workflow is for already paired files, so it will need to be modified slightly in step 2, but the rest will be the same. 
 
-Outputs: Phyloseq objects with and without variance stabilizing transformations. It's also a good idea to save intermediate step objects in case you need to go back and change something. 
+Outputs: Phyloseq objects with and without variance stabilizing transformations. It's also a good idea to save intermediate step objects in case you need to go back and change something. HELLO
 
 
 Tips before starting:
