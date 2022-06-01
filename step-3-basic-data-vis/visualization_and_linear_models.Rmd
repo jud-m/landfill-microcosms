@@ -42,7 +42,7 @@ I don't need these in this step, so I'll comment it out for now and uncomment on
 
 # live samples 
 
-# ps_all.step2 <- readRDS("~/landfill-microcosms/data/live_samples_objects/ps_all.step2") 
+ps_all <- readRDS("~/landfill-microcosms/data/live_samples_objects/ps_all.step2") 
 # 
 # ps_all.rmout <- readRDS("~/landfill-microcosms/data/live_samples_objects/ps_all.rmout") #outlier removed
 # 
@@ -57,7 +57,7 @@ I don't need these in this step, so I'll comment it out for now and uncomment on
 # 
 #  #killed samples 
 # 
-# ps_killed.step2 <- readRDS("~/landfill-microcosms/data/killed_microcosms_objects/ps_killed.step2")
+ ps_killed <- readRDS("~/landfill-microcosms/data/killed_microcosms_objects/ps_killed.step2")
 # 
 # ps_killed.rmout <- readRDS("~/landfill-microcosms/data/killed_microcosms_objects/ps_killed.rmout")
 # 
@@ -88,7 +88,18 @@ full_16s_df_rel <- psmelt(full_16s_dataset_relative)
 
 full_16s_df_abs <- psmelt(full_16s_dataset)
 
+
+
 ```
+
+```{r create-killed-dfs}
+
+killed_df_relative <- transform_sample_counts(ps_killed, calc_prop)
+killed_df_relative <- psmelt(killed_df_relative)
+
+killed_df_abs <- psmelt(ps_killed)
+```
+
 
 
 ##Tidying data 

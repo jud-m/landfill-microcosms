@@ -2,7 +2,9 @@
 title: "Evaluating-data"
 author: "Judy-Malas"
 date: "12/23/2021"
-output: html_document
+output: 
+  html_document: 
+    theme: journal
 ---
 
 This workflow is based on the 2018_ASM_Workshop by Scott A. Handley
@@ -140,8 +142,56 @@ colnames(tax_table(vst_killed))
 
 ```
 
+```{r checknosamples}
+
+nsamples(ps_all)
+nsamples(ps_killed)
 
 
+```
+
+
+Want to remove the "T6" sample from the killed phyloseq objects and make T7 = T6 so that both live and killed have the same number of samples
+```{r remove-t7, results = 'hide'}
+
+as_factor(sample_data(ps_killed)$sample_time)
+
+ps_killed.rmt7 <- subset_samples(ps_killed, sample_time != "T6")
+
+nsamples(ps_killed.rmt7)
+
+#I don't care about the VST anymore
+# vst_killed.rmt7 <-subset_samples(vst_killed, sample_time != "T6")
+# as.character(sample_data(ps_killed.rmt7)$sample_time)
+
+
+#now we need to rename T7 to T6
+
+samdata_rmt7 <- ps_killed.rmt7@sam_data
+
+samdata_rmt7 <- samdata_rmt7 %>%
+  mutate(sample_time = case_when(sample_time == "T7" ~ "T6",
+                                 TRUE ~ sample_time))
+
+as.factor(samdata_rmt7$sample_time) #change back to a factor
+
+
+```
+
+
+```{r update-sampledata-killed}
+
+sample_data(ps_killed.rmt7) = samdata_rmt7
+#sample_data(vst_killed.rmt7) = samdata_rmt7
+#put the updated sampled data in the phyloseq object
+
+
+#update the phyloseq object 
+
+ps_killed <- ps_killed.rmt7
+
+
+```
 
 
 
@@ -232,6 +282,9 @@ summary(sample_sums(ps_all))
 
 summary(sample_sums(ps_killed)) 
 
+sum(sample_sums(ps_all)) + sum(sample_sums(ps_killed))
+
+
 ```
 
 The above data assessment is useful for getting an idea of 
@@ -318,22 +371,39 @@ Here I made two new phyloseq objects called ps_all.rmout and ps_killed.rmout in 
 ```{r}
 
 nsamples(ps_all) #check how many samples are present
-nsamples(ps_killed)
+ps_all.outlier.retained <- ps_all # keep a copy of the phyloseq object that has an outlier
+nsamples(ps_all.outlier.retained)
 
+nsamples(ps_killed)
+ps_killed.outlier.retained <- ps_killed
+
+
+#remove outlier from live ps object
 ps_all.rmout <- ps_all %>%
   subset_samples(
     bottle_number != "AB1t4")
-
 nsamples(ps_all.rmout) #check that the sample was removed
+ps_all <- ps_all.rmout #remove outlier from the original phyloseq object
 
-
+#remove outlier from killed ps object
 ps_killed.rmout <- ps_killed %>%
   subset_samples(
     bottle_number != "NK5t1")
-
 nsamples(ps_killed.rmout)
+ps_killed <- ps_killed.rmout  #remove outlier from the original phyloseq object
+
+
+
+
 
 ```
+
+
+```{r}
+nsamples(ps_all)
+nsamples(ps_killed)
+```
+
 
 
 ## Step 3) Taxon cleaning
@@ -406,7 +476,7 @@ keepTaxa_all <- rownames(prev_all)[(prev_all$Prevalence >= prev_thres_all)]
  
  saveRDS(ps_all.5, "~/landfill-microcosms/data/live_samples_objects/ps_all.5")
 
-
+ntaxa(ps_killed)
 
 
 ```
