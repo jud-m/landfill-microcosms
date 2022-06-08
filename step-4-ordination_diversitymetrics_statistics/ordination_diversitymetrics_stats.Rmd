@@ -394,25 +394,26 @@ ggsave("figures/unifracPCOA-vst-live.jpeg", height = 6)
 ## Killed Samples
 
 The killed samples have an extra data time sample @ T6 because we didn't take the T6 sample for the live samples
+--> moved this part to the "evaluating and transforming data" section
 ```{r remove-t7, results = 'hide'}
 
-ps_killed.rmt7 <- subset_samples(ps_killed, sample_time != "T6")
-vst_killed.rmt7 <-subset_samples(vst_killed, sample_time != "T6")
-
-as.character(sample_data(ps_killed.rmt7)$sample_time)
-
-#now we need to rename T7 to T6
-
-samdata_rmt7 <- ps_killed.rmt7@sam_data
-
-samdata_rmt7 <- samdata_rmt7 %>% 
-  mutate(sample_time = case_when(sample_time == "T7" ~ "T6", 
-                                 TRUE ~ sample_time))
-         
-
-as.factor(samdata_rmt7$sample_time) #change back to a factor 
-
-
+# ps_killed.rmt7 <- subset_samples(ps_killed, sample_time != "T6")
+# vst_killed.rmt7 <-subset_samples(vst_killed, sample_time != "T6")
+# 
+# as.character(sample_data(ps_killed.rmt7)$sample_time)
+# 
+# #now we need to rename T7 to T6
+# 
+# samdata_rmt7 <- ps_killed.rmt7@sam_data
+# 
+# samdata_rmt7 <- samdata_rmt7 %>% 
+#   mutate(sample_time = case_when(sample_time == "T7" ~ "T6", 
+#                                  TRUE ~ sample_time))
+#          
+# 
+# as.factor(samdata_rmt7$sample_time) #change back to a factor 
+# 
+# 
 
 
 ```
@@ -420,8 +421,8 @@ as.factor(samdata_rmt7$sample_time) #change back to a factor
 
 ```{r update-sampledata-killed}
 
-sample_data(ps_killed.rmt7) = samdata_rmt7
-sample_data(vst_killed.rmt7) = samdata_rmt7
+# sample_data(ps_killed.rmt7) = samdata_rmt7
+# sample_data(vst_killed.rmt7) = samdata_rmt7
 
 ```
 
@@ -448,21 +449,21 @@ nmds_bray_vst_killed.plot #print the plot
 
 ```{r nmds-bray-vst-killed-treatment.rmt7}
 
-nmds_bray_vst_killed.rmt7 <- ordinate(vst_killed.rmt7, method="NMDS", distance = "bray")
-
-
-
-nmds_bray_vst_killed.plot.rmt7  <-
-  plot_ordination(vst_killed.rmt7, nmds_bray_vst_killed.rmt7, color = "treatment", shape ="sample_time", title = "Bray-Curtis NMDS killed")+ 
-    scale_color_manual(values= exper_colors) + 
-    geom_point(size=3.5)+ 
-    theme_bw() +
-    theme(legend.title = element_blank())
-
-
-nmds_bray_vst_killed.plot.rmt7 #print the plot
-
-ggsave("figures/BrayNMDS-killed-vst.jpeg", height = 6)
+# nmds_bray_vst_killed.rmt7 <- ordinate(vst_killed.rmt7, method="NMDS", distance = "bray")
+# 
+# 
+# 
+# nmds_bray_vst_killed.plot.rmt7  <-
+#   plot_ordination(vst_killed.rmt7, nmds_bray_vst_killed.rmt7, color = "treatment", shape ="sample_time", title = "Bray-Curtis NMDS killed")+ 
+#     scale_color_manual(values= exper_colors) + 
+#     geom_point(size=3.5)+ 
+#     theme_bw() +
+#     theme(legend.title = element_blank())
+# 
+# 
+# nmds_bray_vst_killed.plot.rmt7 #print the plot
+# 
+# ggsave("figures/BrayNMDS-killed-vst.jpeg", height = 6)
 
 
 ```
@@ -473,18 +474,18 @@ ggsave("figures/BrayNMDS-killed-vst.jpeg", height = 6)
 ### Weighted Unifrac 
 ```{r pcoa-wunifrac-vst-killed}
 
-PCoA_wunifrac_vst_killed <-  phyloseq::ordinate(vst_killed.rmt7, method="PCoA", distance = "wunifrac")
-
-PCoA_wunifrac_vst_all_killed.plot  <-
-  plot_ordination(vst_killed.rmt7 , PCoA_wunifrac_vst_killed, color = "treatment", shape ="sample_time", title = "wUnifrac PCoA killed") +
-  geom_point(size=3.5) +
-  scale_color_manual(values= exper_colors)+
-  theme_bw()+
-  theme(legend.title = element_blank())
-
-PCoA_wunifrac_vst_all_killed.plot
-
-ggsave("figures/weightedunifrace_pcoa-killed-vst.jpeg", height = 6)
+# PCoA_wunifrac_vst_killed <-  phyloseq::ordinate(vst_killed.rmt7, method="PCoA", distance = "wunifrac")
+# 
+# PCoA_wunifrac_vst_all_killed.plot  <-
+#   plot_ordination(vst_killed.rmt7 , PCoA_wunifrac_vst_killed, color = "treatment", shape ="sample_time", title = "wUnifrac PCoA killed") +
+#   geom_point(size=3.5) +
+#   scale_color_manual(values= exper_colors)+
+#   theme_bw()+
+#   theme(legend.title = element_blank())
+# 
+# PCoA_wunifrac_vst_all_killed.plot
+# 
+# ggsave("figures/weightedunifrace_pcoa-killed-vst.jpeg", height = 6)
 
 
 ```
@@ -492,18 +493,18 @@ ggsave("figures/weightedunifrace_pcoa-killed-vst.jpeg", height = 6)
 ### unweighted unifrace
 ```{r pcoa_unifrac-ps_killed}
 
-PCoA_unifrac_ps_killed <-  phyloseq::ordinate(ps_killed.rmt7, method="PCoA", distance = "unifrac")
-
-PCoA_unifrac_ps_killed.plot  <-
-  plot_ordination(ps_killed.rmt7 , PCoA_unifrac_ps_killed , color = "treatment", shape ="sample_time", title = "Unifrac PCoA killed") +
-  geom_point(size=3.5) +
-  scale_color_manual(values= exper_colors)+
-  theme_bw()+
-  theme(legend.title = element_blank())
-
-PCoA_unifrac_ps_killed.plot
-
-ggsave("figures/unifrace_pcoa-killed-vst.jpeg", height = 6)
+# PCoA_unifrac_ps_killed <-  phyloseq::ordinate(ps_killed.rmt7, method="PCoA", distance = "unifrac")
+# 
+# PCoA_unifrac_ps_killed.plot  <-
+#   plot_ordination(ps_killed.rmt7 , PCoA_unifrac_ps_killed , color = "treatment", shape ="sample_time", title = "Unifrac PCoA killed") +
+#   geom_point(size=3.5) +
+#   scale_color_manual(values= exper_colors)+
+#   theme_bw()+
+#   theme(legend.title = element_blank())
+# 
+# PCoA_unifrac_ps_killed.plot
+# 
+# ggsave("figures/unifrace_pcoa-killed-vst.jpeg", height = 6)
 
 
 
@@ -978,11 +979,14 @@ Shannon and Simpson
 Shannon_plot <- 
   plot_richness(ps_all, x="sample", measures=c("Shannon"), color="spike")
 
-Shannon_plot + scale_color_manual(values= exper_colors) 
+Shannon_plot + 
+  scale_color_manual(values= exper_colors) 
 
-Simpson_plot = plot_richness(ps_all, x="spike_time", measures=c("Simpson"), color="spike")
+Simpson_plot <- 
+  plot_richness(ps_all, x="spike_time", measures=c("Simpson"), color="spike")
 
-Simpson_plot  + scale_color_manual(values= exper_colors)
+Simpson_plot  + 
+  scale_color_manual(values= exper_colors) 
 ```
 
 taxa glom
@@ -1006,14 +1010,15 @@ saveRDS(ps_all, "~/landfill-microcosms/data/live_samples_objects/ps_all.step4")
 saveRDS(vst_all, "~/landfill-microcosms/data/live_samples_objects/vst_all.step4")
 
 
-saveRDS(ps_killed.rmt7, "~/landfill-microcosms/data/killed_microcosms_objects/ps_killed.rmt7")
-saveRDS(vst_killed.rmt7, "~/landfill-microcosms/data/killed_microcosms_objects/vst_killed.rmt7")
+# saveRDS(ps_killed.rmt7, "~/landfill-microcosms/data/killed_microcosms_objects/ps_killed.rmt7")
+# saveRDS(vst_killed.rmt7, "~/landfill-microcosms/data/killed_microcosms_objects/vst_killed.rmt7")
 
 saveRDS(ps_killed, "~/landfill-microcosms/data/killed_microcosms_objects/ps_killed.step4")
 saveRDS(vst_killed, "~/landfill-microcosms/data/killed_microcosms_objects/vst_killed.step4")
 
 
 ```
+
 
 
 

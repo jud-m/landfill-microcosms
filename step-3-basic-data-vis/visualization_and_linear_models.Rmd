@@ -32,10 +32,6 @@ library(tidymodels)
 library(RColorBrewer)
 ```
 
-This is the main dataset used -- but I will also run some chunks with the other phyloseq objects created in step 2, depending on what I would like to do
-```{r read_phyloseq_object}
-full_16s_dataset <- readRDS("../data/live_samples_objects/ps_all.step2")
-```
 
 I don't need these in this step, so I'll comment it out for now and uncomment one I need one of these transformed phyloseq objects. 
 ```{r import-all-objects}
@@ -43,6 +39,9 @@ I don't need these in this step, so I'll comment it out for now and uncomment on
 # live samples 
 
 ps_all <- readRDS("~/landfill-microcosms/data/live_samples_objects/ps_all.step2") 
+
+ps_all.rl <- transform_sample_counts(ps_all, function(OTU) OTU/sum(OTU)) #relative abundances 
+
 # 
 # ps_all.rmout <- readRDS("~/landfill-microcosms/data/live_samples_objects/ps_all.rmout") #outlier removed
 # 
@@ -58,6 +57,10 @@ ps_all <- readRDS("~/landfill-microcosms/data/live_samples_objects/ps_all.step2"
 #  #killed samples 
 # 
  ps_killed <- readRDS("~/landfill-microcosms/data/killed_microcosms_objects/ps_killed.step2")
+ 
+ ps_killed.rl <- transform_sample_counts(ps_killed, function(OTU) OTU/sum(OTU)) #relative abundances 
+
+ 
 # 
 # ps_killed.rmout <- readRDS("~/landfill-microcosms/data/killed_microcosms_objects/ps_killed.rmout")
 # 
@@ -69,6 +72,12 @@ ps_all <- readRDS("~/landfill-microcosms/data/live_samples_objects/ps_all.step2"
 
 
 ```
+
+This is the main dataset used -- but I will also run some chunks with the other phyloseq objects created in step 2, depending on what I would like to do
+```{r read_phyloseq_object}
+full_16s_dataset <- readRDS("../data/live_samples_objects/ps_all.step2")
+```
+
 
 In order to analyze this data with the tidyverse functions, we need to convert the phylsoeq object to a regular data frame. 
 First we use the `transform_sample_counts` function to change our absolute counts into relative count, which are more useful for visualization than absolute counts. 
@@ -86,6 +95,8 @@ Here I made two dataframes: one for the full dataset with absolute counts, and o
 
 full_16s_df_rel <- psmelt(full_16s_dataset_relative)
 
+all_rel <- psmelt(ps_all.rl)
+
 full_16s_df_abs <- psmelt(full_16s_dataset)
 
 
@@ -98,6 +109,10 @@ killed_df_relative <- transform_sample_counts(ps_killed, calc_prop)
 killed_df_relative <- psmelt(killed_df_relative)
 
 killed_df_abs <- psmelt(ps_killed)
+
+killed_df_rl <- psmelt(ps_killed.rl)
+
+
 ```
 
 
@@ -113,6 +128,60 @@ I don't think I need this anymore because I already re-leveled the spikes in ste
 ```
 
 
+
+## Some basic stats 
+
+```{r percent Archea}
+
+sum(full_16s_df_rel$Abundance)
+
+nrow(full_16s_df_rel)
+
+
+Arch <- full_16s_df_rel %>% 
+  filter(Domain == "Archaea")
+
+nrow(Arch)
+
+
+nrow(killed_df_relative)
+
+killed.Arch <- killed_df_relative %>% 
+  filter(Domain == "Archaea")
+
+```
+
+semi_join(): all rows from x where there are matching values in y, keeping just columns from x
+inner_join(): all rows from x where there are matching values in y, return all combination of multiple
+matches in the case of multiple matches
+
+I need either semi join or inner join, probably inner join?
+```{r shared-taxa}
+
+full_16s_df_abs <- full_16s_df_abs %>% 
+   mutate(Genus = case_when(is.na(Genus) ~ " Other", 
+                                TRUE ~ as.character(Genus)))
+
+
+killed_df_abs <-killed_df_abs %>% 
+   mutate(Genus = case_when(is.na(Genus) ~ " Other", 
+                                TRUE ~ as.character(Genus)))
+
+shared.taxa <- inner_join(full_16s_df_abs, killed_df_abs, by = "Genus")
+
+library(usethis) 
+usethis::edit_r_environ()
+
+shared.taxa <- intersect(full_16s_df_abs$Genus, killed_df_abs$Genus)
+
+unique_genera <- unique(full_16s_df_abs$Genus)
+
+unique_genera.killed <- unique(killed_df_abs$Genus)
+
+
+```
+
+
 ## Exploratory Visualization
 
 This chunk will apply a theme to all of our plots to make them look pretty. 
@@ -123,8 +192,12 @@ theme_set(theme_bw())
 
 Let's check out the phyla present in the data. (Absolute counts, but it really doesn't matter if we use relative or absolute here)
 ```{r group-by-phyla-desc}
-
  full_16s_df_abs %>%
+  group_by(Phylum) %>% 
+   count() %>% 
+   arrange(desc(n)) 
+
+killed_df_abs %>% 
   group_by(Phylum) %>% 
    count() %>% 
    arrange(desc(n)) 
@@ -148,12 +221,42 @@ From the plot above we can see that most of the samples have OTUs with very low 
 
 The following chunk arranges the full dataset in descending order by Genus counts. 
 ```{r group-by-Genus-desc, echo = FALSE}
-genus_desending <- full_16s_df_abs %>% 
-   group_by(Genus) %>% 
-   count() %>%  #count the number of observations in each Genus group 
-   arrange(desc(n))  #arrange the counts in descending order
 
-genus_desending
+
+full_16s_df_abs %>% 
+   mutate(Genus_new = case_when(is.na(Genus) ~ "Z Other", 
+                                TRUE ~ as.character(Genus))) %>% 
+  group_by(Genus_new) %>% 
+   count() %>%  #count the number of observations in each Genus group 
+   arrange(desc(n)) 
+
+full_16s_df_abs <- full_16s_df_abs %>% 
+   mutate(Genus = case_when(is.na(Genus) ~ "Z Other", 
+                                TRUE ~ as.character(Genus)))
+      
+
+full_16s_df_rel <- full_16s_df_rel %>% 
+   mutate(Genus = case_when(is.na(Genus) ~ "Z Other", 
+                                TRUE ~ as.character(Genus)))       
+
+
+
+killed_df_abs %>% 
+   mutate(Genus_new = case_when(is.na(Genus) ~ "Z Other", 
+                                TRUE ~ as.character(Genus))) %>% 
+  group_by(Genus_new) %>% 
+   count() %>%  #count the number of observations in each Genus group 
+   arrange(desc(n)) 
+
+killed_df_abs <- killed_df_abs %>% 
+   mutate(Genu= case_when(is.na(Genus) ~ "Z Other", 
+                                TRUE ~ as.character(Genus))) 
+
+killed_df_relative <- killed_df_relative %>% 
+   mutate(Genu s= case_when(is.na(Genus) ~ "Z Other", 
+                                TRUE ~ as.character(Genus))) 
+
+
 
 ```
 *Caproiciproducens, Incertae_Sedis*, and *Oxobacter* are the 3 most abundant genera. 
@@ -185,6 +288,12 @@ full_16s_df_rel %>%
 ```
 This is a nice plot, I think I like the heat maps better than the stacked barcharts... We'll see how it looks at other taxanomy levels
 
+```{r heatmap}
+
+plot_heatmap(ps_all, "Phylum")
+
+```
+
 
 ```{r heatmaps-top-10-genera}
 
@@ -207,8 +316,24 @@ full_16s_df_rel %>%
 ```
 This looks weird because different spikes have different concentrations of the top 10 genera in the entire dataset. Some may not have >2% of each of the most abundant taxa. Frustrating..
 
+```{r}
+genus_glom_all <- tax_glom(ps_all, taxrank = "Genus")
+
+genus_df <- psmelt(genus_glom_all)
+
+genus_d %>% 
+ group_by(spike, Phylum, sample_time, Abundance, Genus) %>%  #select only these columns 
+  summarise(mean_abundance = mean(Abundance)) %>%  #this line doesn't seem to be doing anything but the plot won't work without it.. 
+  arrange(sample_time) %>% 
+  ggplot(aes(x = spike, y = Genus, fill = Abundance))+
+    geom_tile() +
+    facet_wrap(~sample_time) +
+  theme(axis.text.x=element_text(angle = -90, hjust = 0))
+```
+
 
 #### Boxplots
+
 ```{r boxplots-phyla}
 full_16s_df_rel %>% filter(sample_time == c("T1","T6"), Abundance > 0) %>% 
   ggplot(aes(x= Phylum, y = Abundance, fill = Phylum)) +
@@ -221,6 +346,61 @@ full_16s_df_rel %>% filter(sample_time == c("T1","T6"), Abundance > 0) %>%
   
 
 ```
+
+```{r boxplots-phyla}
+
+full_16s_df_rel %>% filter(sample_time == c("T1","T6"), Abundance > 0) %>% 
+  ggplot(aes(x= Phylum, y = Abundance)) +
+  geom_boxplot() +
+  scale_y_log10()+
+  facet_wrap(~ sample_time) +
+  theme_bw() +
+  labs(y = "Relative Abundance", x = " ")+
+  theme(axis.text.x=element_text(angle = -90, hjust = 0)) 
+  
+
+```
+
+
+
+```{r boxplots-phyla}
+
+x <- full_16s_df_rel %>% 
+   mutate(Phylum = case_when(is.na(Phylum) ~ " Other", 
+                                TRUE ~ as.character(Phylum))) %>%   
+  filter(Abundance > 0) %>% 
+  ggplot(aes(x= Phylum, y = Abundance)) +
+  geom_boxplot(outlier.shape = NA) +
+  scale_y_log10()+
+  theme_bw() +
+  labs(y = "Relative Abundance", x = " ", title = "Live")+
+  theme(axis.text.x=element_text(angle = -90, hjust = 0)) +
+  coord_flip()+
+  ylim(0.000001, 0.001)
+  
+
+y <- killed_df_relative %>% 
+  mutate(Phylum = case_when(is.na(Phylum) ~ " Other", 
+                                TRUE ~ as.character(Phylum))) %>%   
+  filter(Phylum != "Halobacterota") %>% 
+  filter(Abundance > 0) %>%
+  ggplot(aes(x= Phylum, y = Abundance)) +
+  geom_boxplot(outlier.shape = NA) +
+  scale_y_log10()+
+  theme_bw() +
+  labs(y = "Relative Abundance", x = " ", title = "Killed")+
+  theme(axis.text.x=element_text(angle = -90, hjust = 0)) +
+  coord_flip() +
+  ylim(0.000001, 0.001)
+
+library(ggpubr)
+
+ggarrange(x, y)
+
+ggsave("~/landfill-microcosms/Final_figures/phylum.pdf", width = 8, height = 4.5, units = "in")
+
+```
+
 
 ```{r top-10-genera-boxplot}
 
@@ -237,6 +417,9 @@ full_16s_df_rel %>%
 
 
 ```
+
+
+
 
 #### Barcharts 
 ```{r top-10-genera-barchart }
@@ -279,6 +462,7 @@ full_16s_df_rel %>%
 
 
 
+
 #### Scatter Plots
 ```{r top-10-genera-points}
 
@@ -295,7 +479,7 @@ full_16s_df_rel %>%
   geom_point()
 
 ```
-Not a very useful sccatter plot 
+Not a very useful scatter plot 
 
 
 ```{r}
@@ -325,7 +509,133 @@ Tumebacillus exists in very low abundance in the control, <0.005, but is more ab
 
 
 
-### Statistical Analyses
+#### Trees
+```{r}
+rank_names(ps_all)
+
+genus_glom_all <- tax_glom(ps_all, taxrank = "Genus")
+
+plot_tree(genus_glom_all, ladderize="left", "treeonly")
+
+```
+
+
+#### Area line charts 
+The data frame used as input to build a stacked area chart requires 3 columns:
+
+x: numeric variable used for the X axis, often it is a time.
+y: numeric variable used for the Y axis. What are we looking at?
+group: one shape will be done per group.
+The chart is built using the geom_area() function.
+
+# create data
+time <- as.numeric(rep(seq(1,7),each=7))  # x Axis
+value <- runif(49, 10, 100)               # y Axis
+group <- rep(LETTERS[1:7],times=7)        # group, one shape per group
+data <- data.frame(time, value, group)
+
+# stacked area chart
+ggplot(data, aes(x=time, y=value, fill=group)) + 
+    geom_area()
+
+This didn't work because i have too  many i think
+```{r area-chart}
+
+
+
+ggplot(full_16s_df_rel, aes(sample_time, Abundance, fill = Phylum)) +
+  geom_area(position= "fill")+
+  facet_wrap(~bottle)+
+  scale_fill_brewer(palette="Dark2")
+
+
+```
+
+xx = ggplot(pcm, aes(x = Sample, y = variable)) + 
+  geom_point(aes(size = value, fill = variable), alpha = 0.75, shape = 21) + 
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,17), breaks = c(1,10,50,75)) + 
+  labs( x= "", y = "", size = "Relative Abundance (%)", fill = "")  + 
+  theme(legend.key=element_blank(), 
+  axis.text.x = element_text(colour = "black", size = 12, face = "bold", angle = 90, vjust = 0.3, hjust = 1), 
+  axis.text.y = element_text(colour = "black", face = "bold", size = 11), 
+  legend.text = element_text(size = 10, face ="bold", colour ="black"), 
+  legend.title = element_text(size = 12, face = "bold"), 
+  panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2), 
+  legend.position = "right") +  
+  scale_fill_manual(values = colours, guide = FALSE) + 
+  scale_y_discrete(limits = rev(levels(pcm$variable))) 
+
+
+```{r bubbl-plot-phylum}
+
+full_16s_df_abs %>% 
+  mutate(Phylum_edit = case_when(is.na(Phylum) ~ " Other", TRUE ~ as.character(Phylum))) %>% 
+  filter(Abundance > 10) %>% 
+  ggplot(aes(sample_time, Phylum_edit, color = Phylum_edit)) +
+  geom_point(aes(size = Abundance, fill = Phylum_edit)) 
+
+
+
+full_16s_df_rel %>% 
+  mutate(Phylum_edit = case_when(is.na(Phylum) ~ " Other", TRUE ~ as.character(Phylum))) %>% 
+  filter(Abundance > 0.005) %>% 
+    ggplot(aes(sample_time, Phylum_edit, color = Phylum_edit)) +
+    geom_point(aes(size = Abundance, fill = Phylum_edit)) 
+#this looks weird, gonna try another way 
+all_rel %>% 
+  mutate(Phylum_edit = case_when(is.na(Phylum) ~ " Other", TRUE ~ as.character(Phylum))) %>% 
+  filter(Abundance > 0.005) %>% 
+    ggplot(aes(sample_time, Phylum_edit, color = Phylum_edit)) +
+    geom_point(aes(size = Abundance, fill = Phylum_edit)) 
+
+  
+killed_df_relative %>% 
+  mutate(Phylum_edit = case_when(is.na(Phylum) ~ " Other", TRUE ~ as.character(Phylum))) %>% 
+  filter(Abundance > 0.005) %>% 
+  ggplot(aes(sample_time, Phylum_edit, color = Phylum_edit)) +
+  geom_point(aes(size = Abundance, fill = Phylum_edit))
+
+```
+
+
+```{r bubbl-plot-genus}
+
+
+full_16s_df_rel %>% 
+  mutate(Genus_edit = case_when(is.na(Genus) ~ " Other", TRUE ~ as.character(Genus))) %>% 
+  filter(Abundance > 0.01) %>% 
+    ggplot(aes(sample_time, Genus_edit, color = Genus_edit)) +
+    geom_point(aes(size = Abundance, fill = Genus_edit)) 
+
+  
+killed_df_relative %>% 
+  mutate(Genus_edit = case_when(is.na(Genus) ~ " Other", TRUE ~ as.character(Genus))) %>% 
+  filter(Abundance > 0.02) %>% 
+    ggplot(aes(sample_time, Genus_edit, color = Genus_edit)) +
+    geom_point(aes(size = Abundance, fill = Genus_edit)) 
+
+```
+
+
+```{r}
+full_16s_df_rel %>% 
+  mutate(Genus_edit = case_when(is.na(Genus) ~ " Other", TRUE ~ as.character(Genus))) %>% 
+  filter(Abundance > 0.01, 
+         spike_time == c("T5", "T6")) %>% 
+    ggplot(aes(sample_time, Genus_edit, color = Genus_edit)) +
+    geom_point(aes(size = Abundance, fill = Genus_edit)) 
+
+  
+killed_df_relative %>% 
+  mutate(Genus_edit = case_when(is.na(Genus) ~ " Other", TRUE ~ as.character(Genus))) %>% 
+  filter(Abundance > 0.02) %>% 
+    ggplot(aes(sample_time, Genus_edit, color = Genus_edit)) +
+    geom_point(aes(size = Abundance, fill = Genus_edit)) 
+
+```
+
+
+## Statistical Analyses
 
 
 #### Linear regression
@@ -412,4 +722,9 @@ glance(fit_caproic)$r.squared
 
 ```
 The linear relationship is sigifianct but the R squared is really low.. Minor impact of spikes
+
+
+
+----
+
 
